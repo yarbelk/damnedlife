@@ -1,12 +1,41 @@
 package game
 
-import "sort"
+import (
+	"bytes"
+	"sort"
+)
+
+type Cell bool
+
+func (c Cell) Rune() rune {
+	if c {
+		return '█'
+	}
+	return '░'
+}
 
 type Board struct {
 	world map[int]map[int]bool
 }
 
 type Point [2]int
+
+func (p Point) X() int { return p[0] }
+func (p Point) Y() int { return p[1] }
+
+type points []Point
+
+func (p points) Len() int {
+	return len(p)
+}
+
+func (p points) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p points) Less(i, j int) bool {
+	return (p[i][1] < p[j][1]) || (p[i][1] == p[j][1]) && (p[i][0] < p[j][0])
+}
 
 func NewBoard() *Board {
 	return &Board{make(map[int]map[int]bool)}
@@ -21,12 +50,12 @@ func neighbors(x, y int) (neighbors []Point) {
 	return
 }
 
-// Set a given x/y coord to the passed in state
-func (b *Board) Set(x, y int, alive bool) {
+// SetAlive makes a given x/y coord to be alive
+func (b *Board) SetAlive(x, y int) {
 	if b.world[x] == nil {
 		b.world[x] = make(map[int]bool)
 	}
-	b.world[x][y] = alive
+	b.world[x][y] = true
 }
 
 // Get the state of a point
@@ -73,7 +102,24 @@ func (b *Board) GetLimits() (Point, Point) {
 	return Point{xs[0], ys[0]}, Point{xs[len(xs)-1], ys[len(ys)-1]}
 }
 
-// func (b *Board) String() string {
-// 	var board [][]byte
-// 	tl, br := b.GetLimits()
-// }
+func (b *Board) AllAlive() (points []Point) {
+	for x := range b.world {
+		for y := range b.world[x] {
+			points = append(points, Point{x, y})
+		}
+	}
+	return
+}
+
+func (b *Board) String() string {
+	var buffer bytes.Buffer = bytes.Buffer{}
+
+	tl, br := b.GetLimits()
+	for x := tl.X(); x <= br.X(); x++ {
+		for y := tl.Y(); y <= br.Y(); y++ {
+			buffer.WriteRune(Cell(b.Get(x, y)).Rune())
+		}
+		buffer.WriteRune('\n')
+	}
+	return buffer.String()
+}

@@ -22,7 +22,7 @@ func TestGetState(t *testing.T) {
 	var board = game.NewBoard()
 	Expect(board.Get(1, 1)).To(BeFalse())
 
-	board.Set(1, 1, true)
+	board.SetAlive(1, 1)
 	Expect(board.Get(1, 1)).To(BeTrue())
 }
 
@@ -30,19 +30,19 @@ func TestDiesWithLessThanTwoNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 	var board = game.NewBoard()
 
-	board.Set(1, 1, true)
+	board.SetAlive(1, 1)
 	failOnAlive(board, t)
 
-	board.Set(0, 0, true)
+	board.SetAlive(0, 0)
 	failOnAlive(board, t)
 }
 
 func TestDiesWithOneNeighbor(t *testing.T) {
 	RegisterTestingT(t)
 	var board = game.NewBoard()
-	board.Set(1, 1, true)
+	board.SetAlive(1, 1)
 
-	board.Set(0, 0, true)
+	board.SetAlive(0, 0)
 
 	failOnAlive(board, t)
 }
@@ -50,14 +50,14 @@ func TestDiesWithOneNeighbor(t *testing.T) {
 func TestLivesWithTwoOrThreeNeighbor(t *testing.T) {
 	RegisterTestingT(t)
 	var board = game.NewBoard()
-	board.Set(1, 1, true)
+	board.SetAlive(1, 1)
 
-	board.Set(0, 0, true)
-	board.Set(0, 1, true)
+	board.SetAlive(0, 0)
+	board.SetAlive(0, 1)
 
 	failOnDead(board, t)
 
-	board.Set(0, 2, true)
+	board.SetAlive(0, 2)
 
 	failOnDead(board, t)
 }
@@ -65,25 +65,25 @@ func TestLivesWithTwoOrThreeNeighbor(t *testing.T) {
 func TestDiesWhenMorThanThreeNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 	var board = game.NewBoard()
-	board.Set(1, 1, true)
+	board.SetAlive(1, 1)
 
-	board.Set(0, 0, true)
-	board.Set(0, 1, true)
-	board.Set(0, 2, true)
-	board.Set(1, 0, true)
+	board.SetAlive(0, 0)
+	board.SetAlive(0, 1)
+	board.SetAlive(0, 2)
+	board.SetAlive(1, 0)
 
 	failOnAlive(board, t)
 
-	board.Set(1, 2, true)
+	board.SetAlive(1, 2)
 	failOnAlive(board, t)
 
-	board.Set(2, 0, true)
+	board.SetAlive(2, 0)
 	failOnAlive(board, t)
 
-	board.Set(2, 1, true)
+	board.SetAlive(2, 1)
 	failOnAlive(board, t)
 
-	board.Set(2, 2, true)
+	board.SetAlive(2, 2)
 	failOnAlive(board, t)
 }
 
@@ -91,8 +91,8 @@ func TestNoNewCellWithTwoNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 	var board = game.NewBoard()
 
-	board.Set(0, 0, true)
-	board.Set(0, 1, true)
+	board.SetAlive(0, 0)
+	board.SetAlive(0, 1)
 
 	failOnAlive(board, t)
 }
@@ -101,9 +101,9 @@ func TestNewCellWhenThreeNeighbors(t *testing.T) {
 	RegisterTestingT(t)
 	var board = game.NewBoard()
 
-	board.Set(0, 0, true)
-	board.Set(0, 1, true)
-	board.Set(0, 2, true)
+	board.SetAlive(0, 0)
+	board.SetAlive(0, 1)
+	board.SetAlive(0, 2)
 
 	failOnDead(board, t)
 }
@@ -113,8 +113,8 @@ func TestGetBoardLimits(t *testing.T) {
 	var board = game.NewBoard()
 	var topLeft, bottomRight game.Point
 
-	board.Set(-10, -10, true)
-	board.Set(10, 10, true)
+	board.SetAlive(-10, -10)
+	board.SetAlive(10, 10)
 
 	topLeft, bottomRight = board.GetLimits()
 

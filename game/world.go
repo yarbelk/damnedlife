@@ -22,7 +22,7 @@ func (w *World) Next() {
 	for x := tl[0]; x <= tl[len(br)-1]; x++ {
 		for y := tl[0]; y <= tl[len(tl)-1]; y++ {
 			if w.last.NextState(x, y) {
-				w.current.Set(x, y, true)
+				w.current.SetAlive(x, y)
 			}
 		}
 	}
