@@ -1,5 +1,7 @@
 package game
 
+import "fmt"
+
 type World struct {
 	last, current *Board
 	gen           int
@@ -19,8 +21,8 @@ func (w *World) Next() {
 	tl, br := w.current.GetLimits()
 	w.last, w.current = w.current, NewBoard()
 
-	for x := tl[0]; x <= tl[len(br)-1]; x++ {
-		for y := tl[0]; y <= tl[len(tl)-1]; y++ {
+	for x := tl.X - 1; x <= br.X+1; x++ {
+		for y := tl.Y - 1; y <= br.Y+1; y++ {
 			if w.last.NextState(x, y) {
 				w.current.SetAlive(x, y)
 			}
@@ -38,4 +40,9 @@ func (w *World) CurrentGen() Board {
 // each call to next
 func (w *World) Generation() int {
 	return w.gen
+}
+
+// String print the board state and generation
+func (w *World) String() string {
+	return fmt.Sprintf("Generation: %d\n%s\n", w.gen, w.current)
 }

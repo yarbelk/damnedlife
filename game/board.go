@@ -15,13 +15,12 @@ func (c Cell) Rune() rune {
 }
 
 type Board struct {
-	world map[int]map[int]bool
+	world map[Point]bool
 }
 
-type Point [2]int
-
-func (p Point) X() int { return p[0] }
-func (p Point) Y() int { return p[1] }
+type Point struct {
+	X, Y int
+}
 
 type points []Point
 
@@ -34,11 +33,11 @@ func (p points) Swap(i, j int) {
 }
 
 func (p points) Less(i, j int) bool {
-	return (p[i][1] < p[j][1]) || (p[i][1] == p[j][1]) && (p[i][0] < p[j][0])
+	return (p[i].Y < p[j].Y) || (p[i].Y == p[j].Y) && (p[i].X < p[j].X)
 }
 
 func NewBoard() *Board {
-	return &Board{make(map[int]map[int]bool)}
+	return &Board{make(map[Point]bool)}
 }
 
 func neighbors(x, y int) (neighbors []Point) {
@@ -52,18 +51,12 @@ func neighbors(x, y int) (neighbors []Point) {
 
 // SetAlive makes a given x/y coord to be alive
 func (b *Board) SetAlive(x, y int) {
-	if b.world[x] == nil {
-		b.world[x] = make(map[int]bool)
-	}
-	b.world[x][y] = true
+	b.world[Point{x, y}] = true
 }
 
 // Get the state of a point
 func (b *Board) Get(x, y int) bool {
-	if b.world[x] == nil {
-		return false
-	}
-	return b.world[x][y]
+	return b.world[Point{x, y}]
 }
 
 // NextState of the cell at x, y
@@ -72,16 +65,11 @@ func (b *Board) NextState(x, y int) bool {
 	var currentState bool
 
 	for _, p := range neighbors(x, y) {
-		i, j := p[0], p[1]
-		if b.world[i] == nil {
-			continue
-		} else if b.world[i][j] {
+		if b.world[Point{p.X, p.Y}] {
 			c++
 		}
 	}
-	if b.world[x] != nil {
-		currentState = b.world[x][y]
-	}
+	currentState = b.world[Point{x, y}]
 	return currentState && (c == 2 || c == 3) || (!currentState && c == 3)
 }
 
@@ -91,35 +79,57 @@ func (b *Board) NextState(x, y int) bool {
 func (b *Board) GetLimits() (Point, Point) {
 	var xs, ys []int
 
-	for x := range b.world {
-		for y := range b.world[x] {
-			xs = append(xs, x)
-			ys = append(ys, y)
-		}
+	for p := range b.world {
+		xs = append(xs, p.X)
+		ys = append(ys, p.Y)
 	}
 	sort.Ints(xs)
 	sort.Ints(ys)
+	if len(xs) == 0 {
+		return Point{0, 0}, Point{0, 0}
+	}
 	return Point{xs[0], ys[0]}, Point{xs[len(xs)-1], ys[len(ys)-1]}
 }
 
 func (b *Board) AllAlive() (points []Point) {
-	for x := range b.world {
-		for y := range b.world[x] {
-			points = append(points, Point{x, y})
+
+	for p := range b.world {
+		if b.world[p] { // should always be true; but check anyway
+			points = append(points, p)
 		}
 	}
 	return
 }
 
+// sanePrintLimits (0,0) - (2, 2) are returned if the passed
+// in ones are too small. EG, always start at 0,0 unless
+// there is stuff further up.
+func sanePrintLimits(tl, br Point) (Point, Point) {
+	if tl.X > 0 {
+		tl.X = 0
+	}
+	if tl.Y > 0 {
+		tl.Y = 0
+	}
+	if br.X < 2 {
+		br.X = 2
+	}
+	if br.Y < 2 {
+		br.Y = 2
+	}
+	return tl, br
+}
+
 func (b *Board) String() string {
 	var buffer bytes.Buffer = bytes.Buffer{}
 
-	tl, br := b.GetLimits()
-	for x := tl.X(); x <= br.X(); x++ {
-		for y := tl.Y(); y <= br.Y(); y++ {
+	tl, br := sanePrintLimits(b.GetLimits())
+	for x := tl.X; x <= br.X; x++ {
+		for y := tl.Y; y <= br.Y; y++ {
 			buffer.WriteRune(Cell(b.Get(x, y)).Rune())
 		}
 		buffer.WriteRune('\n')
 	}
+	buffer.Truncate(buffer.Len() - 1) // drop final newline
 	return buffer.String()
 }

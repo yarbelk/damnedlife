@@ -29,12 +29,12 @@ func TestWorldPrints(t *testing.T) {
 	board.SetAlive(2, 2)
 	expected := `█░░
 ░░░
-░░█
-`
+░░█`
 	Expect(board.String()).To(Equal(expected))
 }
 
 /* Make sure that the following occures
+a
 
 ░░░    ░█░    ░░░    ░█░
 ███ => ░█░ => ███ => ░█░
@@ -46,21 +46,23 @@ func TestWorldGetsGenerationBlinker(t *testing.T) {
 	board.SetAlive(0, 1)
 	board.SetAlive(1, 1)
 	board.SetAlive(2, 1)
+	t.Log(fmt.Sprintf("genO\n\n%s\n\n", board.String()))
 
 	var world = game.NewWorld(*board)
 	world.Next()
 
-	Expect(world.Generation()).To(Equal(1))
+	Expect(world.Generation()).To(Equal(1), "generation")
 	genOne := world.CurrentGen()
-	Expect(genOne.Get(1, 0)).To(BeTrue())
-	Expect(genOne.Get(1, 1)).To(BeTrue())
-	Expect(genOne.Get(1, 2)).To(BeTrue())
-	t.Log(fmt.Sprintf("\n\n%s\n\n", genOne.String()))
+	Expect(genOne.Get(1, 0)).To(BeTrue(), "%#v", game.Point{1, 0})
+	Expect(genOne.Get(1, 1)).To(BeTrue(), "%#v", game.Point{1, 1})
+	Expect(genOne.Get(1, 2)).To(BeTrue(), "%#v", game.Point{1, 2})
+	t.Log(fmt.Sprintf("gen1\n\n%s\n\n", genOne.String()))
 
-	Expect(world.Generation()).To(Equal(2))
+	world.Next()
 	genTwo := world.CurrentGen()
-	Expect(genTwo.Get(0, 1)).To(BeTrue())
-	Expect(genTwo.Get(1, 1)).To(BeTrue())
-	Expect(genTwo.Get(2, 1)).To(BeTrue())
-	t.Log(fmt.Sprintf("\n\n%s\n\n", genTwo.String()))
+	Expect(world.Generation()).To(Equal(2), "generation")
+	Expect(genTwo.Get(0, 1)).To(BeTrue(), "%#v", game.Point{0, 1})
+	Expect(genTwo.Get(1, 1)).To(BeTrue(), "%#v", game.Point{1, 1})
+	Expect(genTwo.Get(2, 1)).To(BeTrue(), "%#v", game.Point{2, 1})
+	t.Log(fmt.Sprintf("gen2\n\n%s\n\n", genTwo.String()))
 }

@@ -121,3 +121,14 @@ func TestGetBoardLimits(t *testing.T) {
 	Expect(topLeft).To(Equal(game.Point{-10, -10}))
 	Expect(bottomRight).To(Equal(game.Point{10, 10}))
 }
+
+func TestPrintMinimumSize(t *testing.T) {
+	RegisterTestingT(t)
+	var board = game.NewBoard()
+	board.SetAlive(1, 1)
+
+	expected := `░░░
+░█░
+░░░`
+	Expect(board.String()).To(Equal(expected))
+}
