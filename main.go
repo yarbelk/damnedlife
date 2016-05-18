@@ -9,11 +9,12 @@ import (
 
 func main() {
 	startBoard := game.NewBoard()
-	startBoard.SetAlive(0, 0)
-	startBoard.SetAlive(1, 1)
-	startBoard.SetAlive(2, 1)
-	startBoard.SetAlive(0, 2)
-	startBoard.SetAlive(1, 2)
+	game.Glider(startBoard, 0, 0)
+	game.Glider(startBoard, 5, 0)
+	game.Glider(startBoard, 10, 0)
+	game.Glider(startBoard, 15, 0)
+
+	game.LWSS(startBoard, 0, 5)
 
 	world := game.NewWorld(*startBoard)
 
@@ -21,6 +22,6 @@ func main() {
 		fmt.Println(world)
 
 		world.Next()
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
