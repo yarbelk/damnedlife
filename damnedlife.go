@@ -32,6 +32,7 @@ func setupTitle(win *gc.Window) {
 func setupField(win *gc.Window) {
 	win.Erase()
 
+	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
 	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, ' ', ' ', gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE)
 	win.MovePrint(2, 2, "bob bob")
 }
@@ -39,12 +40,27 @@ func setupField(win *gc.Window) {
 func setupFooter(win *gc.Window) {
 	win.Erase()
 	_, x := win.MaxYX()
-	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_HLINE, gc.ACS_HLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE)
-	win.MovePrint(2, 2, "bob bob")
+
+	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
+	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_HLINE, gc.ACS_HLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_LLCORNER, gc.ACS_LRCORNER)
 	win.MovePrint(1, 3, "Generation: 0")
 	win.MovePrint(1, x/2, "Size x,x -> y,y")
 }
 
+/* want the following
+
+   ┌────────────────────┐
+   │        TITLE       │
+   ├────────────────────┤
+   │                    │
+   │                    │
+   │                    │
+   │                    │
+   │                    │
+   ├────────────────────┤
+   │ G:1 (0,0)->(15,15) │
+   └────────────────────┘
+*/
 func main() {
 	f, err := os.Create("err.log")
 	if err != nil {
@@ -74,42 +90,31 @@ func main() {
 	gc.Cursor(0)
 
 	stdscrn.Keypad(true)
-	cols, rows := stdscrn.MaxYX()
+	rows, cols := stdscrn.MaxYX()
 
-	/* want the following
-
-	   ┌────────────────────┐
-	   │        TITLE       │
-	   ├────────────────────┤
-	   │                    │
-	   │                    │
-	   │                    │
-	   │                    │
-	   │                    │
-	   ├────────────────────┤
-	   │ G:1 (0,0)->(15,15) │
-	   └────────────────────┘
-	*/
-
-	title, err = gc.NewWindow(TITLE_HEIGHT, rows, 0, 0)
+	title, err = gc.NewWindow(TITLE_HEIGHT, cols, 0, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer title.Delete()
 
 	field, err = gc.NewWindow(
-		cols-(TITLE_HEIGHT+FOOTER_HEIGHT),
-		rows,
+		rows-(TITLE_HEIGHT+FOOTER_HEIGHT),
+		cols,
 		TITLE_HEIGHT, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer field.Delete()
 
+	log.Printf("rows-(T+F): %d\n", rows-(TITLE_HEIGHT+FOOTER_HEIGHT))
+	log.Printf("rows:       %d\n", rows)
+	log.Printf("cols:       %d\n", cols)
 	footer, err = gc.NewWindow(
-		3,
-		rows,
-		rows-3, 0)
+		FOOTER_HEIGHT,
+		cols,
+		rows-FOOTER_HEIGHT,
+		0)
 	if err != nil {
 		log.Fatal(err)
 	}
