@@ -31,7 +31,7 @@ func setupTitle(win *gc.Window) {
 	_, x := win.MaxYX()
 	title := "Conways Game of Life"
 	win.MovePrint(2, (x/2 - len(title)/2), title)
-	win.MovePrint(3, (x/2 - len(title)/2), "(press Q to exit)")
+	win.MovePrint(3, (x/2 - len(title)/2), "(press Q to exit; hjkl to move)")
 }
 
 func setupField(win *gc.Window) *gc.Window {
@@ -48,7 +48,7 @@ func setupField(win *gc.Window) *gc.Window {
 	return gameBoard
 }
 
-func updateField(win *gc.Window, world *game.World) {
+func updateField(win *gc.Window, world *game.World, originY, originX int) {
 	board := world.CurrentGen()
 	win.Color(2)
 	win.Erase()
@@ -58,7 +58,7 @@ func updateField(win *gc.Window, world *game.World) {
 	for i := 0; i <= x; i++ {
 		for j := 0; j <= y; j++ {
 			win.Move(j, i)
-			if board.Get(i, j) {
+			if board.Get(i+originX, j+originY) {
 				win.AddChar(gc.ACS_BOARD)
 			}
 		}
@@ -66,14 +66,14 @@ func updateField(win *gc.Window, world *game.World) {
 	win.NoutRefresh()
 }
 
-func updateFooter(win *gc.Window, world *game.World, y, x int) {
+func updateFooter(win *gc.Window, world *game.World, originY, originX, y, x int) {
 	win.Erase()
 	_, cols := win.MaxYX()
 
 	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
 	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_HLINE, gc.ACS_HLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_LLCORNER, gc.ACS_LRCORNER)
 	win.MovePrint(1, 3, fmt.Sprintf("Generation: %d", world.Generation()))
-	win.MovePrint(1, cols/2, fmt.Sprintf("Size (0, 0) -> (%d, %d)", x, y))
+	win.MovePrint(1, cols/2, fmt.Sprintf("Size (%d, %d) -> (%d, %d)", originX, originY, originX+x, originY+y))
 	win.NoutRefresh()
 }
 
@@ -184,7 +184,8 @@ func main() {
 
 	world := game.NewWorld(*startBoard)
 
-	var y, x int
+	var originY, originX int
+	var boardRows, boardCols int
 main:
 	for {
 		// Clear the section of screen where the box is currently located so
@@ -193,12 +194,20 @@ main:
 		// output to the terminal
 
 		title.NoutRefresh()
-		updateField(gameBoard, world)
-		y, x = gameBoard.MaxYX()
-		updateFooter(footer, world, y, x)
+		updateField(gameBoard, world, originY, originX)
+		boardRows, boardCols = gameBoard.MaxYX()
+		updateFooter(footer, world, originY, originX, boardRows, boardCols)
 		world.Next()
 		gc.Update()
 		switch field.GetChar() {
+		case 'h':
+			originX--
+		case 'j':
+			originY--
+		case 'k':
+			originY++
+		case 'l':
+			originX++
 		case 0:
 			continue main
 		case 'q':
