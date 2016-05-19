@@ -22,6 +22,6 @@ func main() {
 		fmt.Println(world)
 
 		world.Next()
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 	}
 }

@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os"
+	"time"
 
 	gc "github.com/rthornton128/goncurses"
 )
@@ -30,11 +32,13 @@ func setupTitle(win *gc.Window) {
 }
 
 func setupField(win *gc.Window) {
+	win.Color(2)
 	win.Erase()
+	win.SetBackground(gc.ColorPair(2) | gc.A_BOLD)
+	win.MovePrint(2, 2, "BOB WAS HERE")
 
 	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
 	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, ' ', ' ', gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE)
-	win.MovePrint(2, 2, "bob bob")
 }
 
 func setupFooter(win *gc.Window) {
@@ -68,21 +72,22 @@ func main() {
 	}
 	defer f.Close()
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var title, field, footer *gc.Window
-
 	log.SetOutput(f)
 
 	var stdscrn *gc.Window
 	stdscrn, err = gc.Init()
-
 	if err != nil {
 		log.Println("Failed to init screen", err)
 	}
 	defer gc.End()
+
+	rand.Seed(time.Now().Unix())
+	gc.StartColor()
+
+	// this has to be after the StartColor, or it breaks.
+	var title, field, footer *gc.Window
+
+	gc.InitPair(2, gc.C_YELLOW, gc.C_BLUE)
 
 	// No echo or visiable stuff
 	gc.Echo(false)
