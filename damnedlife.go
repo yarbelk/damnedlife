@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"time"
 
 	gc "github.com/rthornton128/goncurses"
+	"github.com/yarbelk/cgol2/game"
 )
 
 const (
@@ -29,16 +31,50 @@ func setupTitle(win *gc.Window) {
 	_, x := win.MaxYX()
 	title := "Conways Game of Life"
 	win.MovePrint(2, (x/2 - len(title)/2), title)
+	win.MovePrint(3, (x/2 - len(title)/2), "(press Q to exit)")
 }
 
-func setupField(win *gc.Window) {
+func setupField(win *gc.Window) *gc.Window {
+	win.Color(2)
+	win.Erase()
+	win.Timeout(200)
+	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
+	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, ' ', ' ', gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE)
+	y, x := win.MaxYX()
+	gameBoard := win.Derived(y, x-2, 0, 1)
+	gameBoard.SetBackground(gc.ColorPair(2) | gc.A_BOLD)
+	gameBoard.Touch()
+	gameBoard.Sync(gc.SYNC_DOWN)
+	return gameBoard
+}
+
+func updateField(win *gc.Window, world *game.World) {
+	board := world.CurrentGen()
 	win.Color(2)
 	win.Erase()
 	win.SetBackground(gc.ColorPair(2) | gc.A_BOLD)
-	win.MovePrint(2, 2, "BOB WAS HERE")
+	y, x := win.MaxYX()
+	y, x = y-2, x-2
+	for i := 0; i <= x; i++ {
+		for j := 0; j <= y; j++ {
+			win.Move(j, i)
+			if board.Get(i, j) {
+				win.AddChar(gc.ACS_BOARD)
+			}
+		}
+	}
+	win.NoutRefresh()
+}
+
+func updateFooter(win *gc.Window, world *game.World, y, x int) {
+	win.Erase()
+	_, cols := win.MaxYX()
 
 	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
-	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, ' ', ' ', gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE)
+	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_HLINE, gc.ACS_HLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_LLCORNER, gc.ACS_LRCORNER)
+	win.MovePrint(1, 3, fmt.Sprintf("Generation: %d", world.Generation()))
+	win.MovePrint(1, cols/2, fmt.Sprintf("Size (0, 0) -> (%d, %d)", x, y))
+	win.NoutRefresh()
 }
 
 func setupFooter(win *gc.Window) {
@@ -126,7 +162,7 @@ func main() {
 	defer footer.Delete()
 
 	setupTitle(title)
-	setupField(field)
+	gameBoard := setupField(field)
 	setupFooter(footer)
 
 	stdscrn.NoutRefresh()
@@ -136,17 +172,35 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// setup world.
+	startBoard := game.NewBoard()
+	game.Glider(startBoard, 0, 0)
+	game.Glider(startBoard, 5, 0)
+	game.Glider(startBoard, 10, 0)
+	game.Glider(startBoard, 15, 0)
+
+	game.LWSS(startBoard, 0, 5)
+
+	world := game.NewWorld(*startBoard)
+
+	var y, x int
 main:
 	for {
 		// Clear the section of screen where the box is currently located so
 		// that it is blanked by calling Erase on the window and refreshing it
 		// so that the chances are sent to the virtual screen but not actually
 		// output to the terminal
+
 		title.NoutRefresh()
-		field.NoutRefresh()
-		footer.NoutRefresh()
+		updateField(gameBoard, world)
+		y, x = gameBoard.MaxYX()
+		updateFooter(footer, world, y, x)
+		world.Next()
 		gc.Update()
-		switch stdscrn.GetChar() {
+		switch field.GetChar() {
+		case 0:
+			continue main
 		case 'q':
 			break main
 		}
