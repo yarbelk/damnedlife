@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	ALIVE = '█'
-	DEAD  = '░'
+	ALIVE = '#'
 )
 
 const (
@@ -59,7 +58,7 @@ func updateField(win *gc.Window, world *game.World, originY, originX int) {
 		for j := 0; j <= y; j++ {
 			win.Move(j, i)
 			if board.Get(i+originX, j+originY) {
-				win.AddChar(gc.ACS_BOARD)
+				win.AddChar(ALIVE)
 			}
 		}
 	}
@@ -199,18 +198,28 @@ main:
 		updateFooter(footer, world, originY, originX, boardRows, boardCols)
 		world.Next()
 		gc.Update()
+
+		// get a char, flush input when you do get one to prevent being blocked
+		// by a huge pipe of chars waiting to be processed when you hold down
+		// a key
 		switch field.GetChar() {
 		case 'h':
+			gc.FlushInput()
 			originX--
 		case 'j':
+			gc.FlushInput()
 			originY++
 		case 'k':
+			gc.FlushInput()
 			originY--
 		case 'l':
+			gc.FlushInput()
 			originX++
 		case 0:
+			gc.FlushInput()
 			continue main
 		case 'q':
+			gc.FlushInput()
 			break main
 		}
 	}
