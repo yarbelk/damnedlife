@@ -8,7 +8,7 @@ import (
 	"time"
 
 	gc "github.com/rthornton128/goncurses"
-	"github.com/yarbelk/cgol2/game"
+	"github.com/yarbelk/damnedlife/game"
 )
 
 const (

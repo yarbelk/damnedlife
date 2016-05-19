@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/yarbelk/cgol2/game"
+	"github.com/yarbelk/deadlife/game"
 )
 
 func TestWorldGetsGeneration(t *testing.T) {
