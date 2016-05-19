@@ -203,9 +203,9 @@ main:
 		case 'h':
 			originX--
 		case 'j':
-			originY--
-		case 'k':
 			originY++
+		case 'k':
+			originY--
 		case 'l':
 			originX++
 		case 0:
