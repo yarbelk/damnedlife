@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	gc "github.com/rthornton128/goncurses"
@@ -14,6 +15,8 @@ import (
 const (
 	ALIVE = '#'
 )
+
+const GENERATION_AGE = time.Millisecond * 100
 
 const (
 	TITLE_HEIGHT  = 5
@@ -43,7 +46,6 @@ func updateTitle(win *gc.Window) {
 func setupField(win *gc.Window) *gc.Window {
 	win.Color(2)
 	win.Erase()
-	win.Timeout(200)
 	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
 	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, ' ', ' ', gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_VLINE)
 	y, x := win.MaxYX()
@@ -95,14 +97,18 @@ func setupFooter(win *gc.Window) {
 
 // generationTimer waits for each tick of 100ms, updates the world state, and sends out
 // a update command to the redraw (async`ly)
-func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan bool) {
+func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan bool, worldLocker *sync.RWMutex) {
 	for {
 		select {
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(GENERATION_AGE):
+			worldLocker.Lock()
 			world.Next()
+			worldLocker.Unlock()
 			newGeneration <- true
+			continue
 		case <-quit:
 			close(newGeneration)
+			log.Println("[GT] leaving timer")
 			return
 		}
 	}
@@ -110,6 +116,7 @@ func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan b
 
 func keyPresses(field *gc.Window, originMoved chan<- game.Point, quit chan<- bool) {
 	origin := game.Point{0, 0}
+keys:
 	for {
 		// get a char, flush input when you do get one to prevent being blocked
 		// by a huge pipe of chars waiting to be processed when you hold down
@@ -119,33 +126,37 @@ func keyPresses(field *gc.Window, originMoved chan<- game.Point, quit chan<- boo
 			gc.FlushInput()
 			origin.X--
 			originMoved <- origin
+			continue keys
 		case 'j':
 			gc.FlushInput()
 			origin.Y++
 			originMoved <- origin
+			continue keys
 		case 'k':
 			gc.FlushInput()
 			origin.Y--
 			originMoved <- origin
+			continue keys
 		case 'l':
 			gc.FlushInput()
 			origin.X++
 			originMoved <- origin
-		case 0:
-			gc.FlushInput()
-			originMoved <- origin
-			continue
+			continue keys
 		case 'q':
 			gc.FlushInput()
 			quit <- true
 			close(originMoved)
+			close(quit)
+			log.Println("[KP] leaving keyPresses, closed the channels")
 			return
 		}
 	}
 }
 
-func redrawConsumer(title, gameBoard, footer *gc.Window, world *game.World, originMoved <-chan game.Point, newGeneration <-chan bool) {
+func redrawConsumer(title, gameBoard, footer *gc.Window, world *game.World, originMoved <-chan game.Point, newGeneration <-chan bool, worldLocker *sync.RWMutex) {
 	redrawScreen := func(origin game.Point) {
+		worldLocker.RLock()
+		defer worldLocker.RUnlock()
 		updateTitle(title)
 		updateField(gameBoard, world, origin.Y, origin.X)
 		boardRows, boardCols := gameBoard.MaxYX()
@@ -154,15 +165,28 @@ func redrawConsumer(title, gameBoard, footer *gc.Window, world *game.World, orig
 	}
 
 	origin := game.Point{0, 0}
+redraw:
 	for {
+		if originMoved == nil || newGeneration == nil {
+			log.Println("[RC] Cowardly not litening to nil channels")
+			return
+		}
 		select {
-		case newOrigin := <-originMoved:
+		case newOrigin, ok := <-originMoved:
+			if !ok {
+				log.Println("[RC] leaving redraw (originMoved not ok)")
+				return
+			}
 			origin = newOrigin
 			redrawScreen(newOrigin)
-			continue
-		case <-newGeneration:
+			continue redraw
+		case _, ok := <-newGeneration:
+			if !ok {
+				log.Println("[RC] leaving redraw (newGeneration not ok)")
+				return
+			}
 			redrawScreen(origin)
-			continue
+			continue redraw
 		}
 	}
 
@@ -229,9 +253,6 @@ func main() {
 	}
 	defer field.Delete()
 
-	log.Printf("rows-(T+F): %d\n", rows-(TITLE_HEIGHT+FOOTER_HEIGHT))
-	log.Printf("rows:       %d\n", rows)
-	log.Printf("cols:       %d\n", cols)
 	footer, err = gc.NewWindow(
 		FOOTER_HEIGHT,
 		cols,
@@ -244,6 +265,7 @@ func main() {
 
 	setupTitle(title)
 	gameBoard := setupField(field)
+	defer gameBoard.Delete()
 	setupFooter(footer)
 
 	stdscrn.NoutRefresh()
@@ -268,16 +290,9 @@ func main() {
 	var originMoved chan game.Point = make(chan game.Point)
 	var newGeneration chan bool = make(chan bool)
 	var quit chan bool = make(chan bool)
+	var worldLocker *sync.RWMutex = &sync.RWMutex{}
 
-	for {
-		// Clear the section of screen where the box is currently located so
-		// that it is blanked by calling Erase on the window and refreshing it
-		// so that the chances are sent to the virtual screen but not actually
-		// output to the terminal
-
-		world.Next()
-		go keyPresses(field, originMoved, quit)                                     // producter of origini change commands, and quit.  closes originMoved when done
-		go generationTimer(world, newGeneration, quit)                              // produces ticks on the newGeneration channel, waits for a quit command to end. closes newGeneration when done
-		redrawConsumer(title, gameBoard, footer, world, originMoved, newGeneration) // listens to orignMoved and newGeneration, quits when both are done.
-	}
+	go keyPresses(field, originMoved, quit)                                                  // producter of origini change commands, and quit.  closes originMoved when done
+	go generationTimer(world, newGeneration, quit, worldLocker)                              // produces ticks on the newGeneration channel, waits for a quit command to end. closes newGeneration when done
+	redrawConsumer(title, gameBoard, footer, world, originMoved, newGeneration, worldLocker) // listens to orignMoved and newGeneration, quits when both are done.
 }
