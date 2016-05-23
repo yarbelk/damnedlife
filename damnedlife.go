@@ -22,6 +22,7 @@ const (
 
 // ncurses version; thus the 'damned' part of the life
 
+// setupTitle for inital drawing etc.
 func setupTitle(win *gc.Window) {
 	win.Erase()
 	// func (w *Window) Border(ls, rs, ts, bs, tl, tr, bl, br Char) error
@@ -33,6 +34,12 @@ func setupTitle(win *gc.Window) {
 	win.MovePrint(3, (x/2 - len(title)/2), "(press Q to exit; hjkl to move)")
 }
 
+func updateTitle(win *gc.Window) {
+	win.NoutRefresh()
+}
+
+// setupField to handle the actual cellular atomita.  Returns a Derived
+// window, which is used to update the actual cells.
 func setupField(win *gc.Window) *gc.Window {
 	win.Color(2)
 	win.Erase()
@@ -47,11 +54,10 @@ func setupField(win *gc.Window) *gc.Window {
 	return gameBoard
 }
 
+// updateField with the new game world state.
 func updateField(win *gc.Window, world *game.World, originY, originX int) {
 	board := world.CurrentGen()
-	win.Color(2)
 	win.Erase()
-	win.SetBackground(gc.ColorPair(2) | gc.A_BOLD)
 	y, x := win.MaxYX()
 	y, x = y-2, x-2
 	for i := 0; i <= x; i++ {
@@ -65,6 +71,7 @@ func updateField(win *gc.Window, world *game.World, originY, originX int) {
 	win.NoutRefresh()
 }
 
+// updateFooter with new window extents and current generation
 func updateFooter(win *gc.Window, world *game.World, originY, originX, y, x int) {
 	win.Erase()
 	_, cols := win.MaxYX()
@@ -84,6 +91,81 @@ func setupFooter(win *gc.Window) {
 	win.Border(gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_HLINE, gc.ACS_HLINE, gc.ACS_VLINE, gc.ACS_VLINE, gc.ACS_LLCORNER, gc.ACS_LRCORNER)
 	win.MovePrint(1, 3, "Generation: 0")
 	win.MovePrint(1, x/2, "Size x,x -> y,y")
+}
+
+// generationTimer waits for each tick of 100ms, updates the world state, and sends out
+// a update command to the redraw (async`ly)
+func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan bool) {
+	for {
+		select {
+		case <-time.After(time.Millisecond * 100):
+			world.Next()
+			newGeneration <- true
+		case <-quit:
+			close(newGeneration)
+			return
+		}
+	}
+}
+
+func keyPresses(field *gc.Window, originMoved chan<- game.Point, quit chan<- bool) {
+	origin := game.Point{0, 0}
+	for {
+		// get a char, flush input when you do get one to prevent being blocked
+		// by a huge pipe of chars waiting to be processed when you hold down
+		// a key
+		switch field.GetChar() {
+		case 'h':
+			gc.FlushInput()
+			origin.X--
+			originMoved <- origin
+		case 'j':
+			gc.FlushInput()
+			origin.Y++
+			originMoved <- origin
+		case 'k':
+			gc.FlushInput()
+			origin.Y--
+			originMoved <- origin
+		case 'l':
+			gc.FlushInput()
+			origin.X++
+			originMoved <- origin
+		case 0:
+			gc.FlushInput()
+			originMoved <- origin
+			continue
+		case 'q':
+			gc.FlushInput()
+			quit <- true
+			close(originMoved)
+			return
+		}
+	}
+}
+
+func redrawConsumer(title, gameBoard, footer *gc.Window, world *game.World, originMoved <-chan game.Point, newGeneration <-chan bool) {
+	redrawScreen := func(origin game.Point) {
+		updateTitle(title)
+		updateField(gameBoard, world, origin.Y, origin.X)
+		boardRows, boardCols := gameBoard.MaxYX()
+		updateFooter(footer, world, origin.Y, origin.X, boardRows, boardCols)
+		gc.Update()
+	}
+
+	origin := game.Point{0, 0}
+	for {
+		select {
+		case newOrigin := <-originMoved:
+			origin = newOrigin
+			redrawScreen(newOrigin)
+			continue
+		case <-newGeneration:
+			redrawScreen(origin)
+			continue
+		}
+	}
+
 }
 
 /* want the following
@@ -183,44 +265,19 @@ func main() {
 
 	world := game.NewWorld(*startBoard)
 
-	var originY, originX int
-	var boardRows, boardCols int
-main:
+	var originMoved chan game.Point = make(chan game.Point)
+	var newGeneration chan bool = make(chan bool)
+	var quit chan bool = make(chan bool)
+
 	for {
 		// Clear the section of screen where the box is currently located so
 		// that it is blanked by calling Erase on the window and refreshing it
 		// so that the chances are sent to the virtual screen but not actually
 		// output to the terminal
 
-		title.NoutRefresh()
-		updateField(gameBoard, world, originY, originX)
-		boardRows, boardCols = gameBoard.MaxYX()
-		updateFooter(footer, world, originY, originX, boardRows, boardCols)
 		world.Next()
-		gc.Update()
-
-		// get a char, flush input when you do get one to prevent being blocked
-		// by a huge pipe of chars waiting to be processed when you hold down
-		// a key
-		switch field.GetChar() {
-		case 'h':
-			gc.FlushInput()
-			originX--
-		case 'j':
-			gc.FlushInput()
-			originY++
-		case 'k':
-			gc.FlushInput()
-			originY--
-		case 'l':
-			gc.FlushInput()
-			originX++
-		case 0:
-			gc.FlushInput()
-			continue main
-		case 'q':
-			gc.FlushInput()
-			break main
-		}
+		go keyPresses(field, originMoved, quit)                                     // producter of origini change commands, and quit.  closes originMoved when done
+		go generationTimer(world, newGeneration, quit)                              // produces ticks on the newGeneration channel, waits for a quit command to end. closes newGeneration when done
+		redrawConsumer(title, gameBoard, footer, world, originMoved, newGeneration) // listens to orignMoved and newGeneration, quits when both are done.
 	}
 }
