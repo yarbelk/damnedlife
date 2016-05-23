@@ -91,6 +91,20 @@ func (b *Board) GetLimits() (Point, Point) {
 	return Point{xs[0], ys[0]}, Point{xs[len(xs)-1], ys[len(ys)-1]}
 }
 
+// GetOpenCells return all cells currently alives, and their neighbors
+func (b *Board) GetOpenCells() map[Point]bool {
+	var allCells map[Point]bool = make(map[Point]bool)
+	for _, cell := range b.AllAlive() {
+		allCells[cell] = true
+		for _, neighbor := range neighbors(cell.X, cell.Y) {
+			allCells[neighbor] = true
+		}
+	}
+
+	return allCells
+}
+
+// AllAlive cells on the board
 func (b *Board) AllAlive() (points []Point) {
 
 	for p := range b.world {

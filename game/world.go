@@ -18,16 +18,22 @@ func NewWorld(b Board) *World {
 func (w *World) Next() {
 	w.gen++
 
-	tl, br := w.current.GetLimits()
+	//	tl, br := w.current.GetLimits()
 	w.last, w.current = w.current, NewBoard()
 
-	for x := tl.X - 1; x <= br.X+1; x++ {
-		for y := tl.Y - 1; y <= br.Y+1; y++ {
-			if w.last.NextState(x, y) {
-				w.current.SetAlive(x, y)
-			}
+	for point, _ := range w.last.GetOpenCells() {
+		if w.last.NextState(point.X, point.Y) {
+			w.current.SetAlive(point.X, point.Y)
 		}
 	}
+
+	// for x := tl.X - 1; x <= br.X+1; x++ {
+	// 	for y := tl.Y - 1; y <= br.Y+1; y++ {
+	// 		if w.last.NextState(x, y) {
+	// 			w.current.SetAlive(x, y)
+	// 		}
+	// 	}
+	// }
 
 }
 

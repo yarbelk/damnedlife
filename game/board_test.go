@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/yarbelk/deadlife/game"
+	"github.com/yarbelk/damnedlife/game"
 )
 
 func failOnAlive(b *game.Board, t *testing.T) {
