@@ -5,7 +5,9 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	gc "github.com/rthornton128/goncurses"
@@ -114,7 +116,7 @@ func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan b
 	}
 }
 
-func keyPresses(field *gc.Window, originMoved chan<- game.Point, quit chan<- bool) {
+func keyPresses(field *gc.Window, originMoved chan<- game.Point, quit chan bool) {
 	origin := game.Point{0, 0}
 keys:
 	for {
@@ -123,37 +125,37 @@ keys:
 		// a key
 		switch field.GetChar() {
 		case 'h':
-			gc.FlushInput()
 			origin.X--
 			originMoved <- origin
 			continue keys
 		case 'j':
-			gc.FlushInput()
 			origin.Y++
 			originMoved <- origin
 			continue keys
 		case 'k':
-			gc.FlushInput()
 			origin.Y--
 			originMoved <- origin
 			continue keys
 		case 'l':
-			gc.FlushInput()
 			origin.X++
 			originMoved <- origin
 			continue keys
 		case '0':
-			gc.FlushInput()
 			origin.X, origin.Y = 0, 0
 			originMoved <- origin
 			continue keys
 		case 'q':
-			gc.FlushInput()
-			quit <- true
 			close(originMoved)
 			close(quit)
 			log.Println("[KP] leaving keyPresses, closed the channels")
 			return
+		case 0:
+			select {
+			case <-time.After(time.Millisecond * 1):
+				continue keys
+			case <-quit:
+				return
+			}
 		}
 	}
 }
@@ -196,6 +198,19 @@ redraw:
 		}
 	}
 
+}
+
+func catchSigInt(quit chan bool) {
+	var c chan os.Signal
+	c = make(chan os.Signal)
+	gc.CBreak(true)
+	signal.Notify(c, syscall.SIGINT)
+	for {
+		<-c
+		log.Println("trying to quit")
+		close(quit)
+		return
+	}
 }
 
 /* want the following
@@ -300,6 +315,7 @@ func main() {
 	var quit chan bool = make(chan bool)
 	var worldLocker *sync.RWMutex = &sync.RWMutex{}
 
+	go catchSigInt(quit)
 	go keyPresses(field, originMoved, quit)                                                  // producter of origini change commands, and quit.  closes originMoved when done
 	go generationTimer(world, newGeneration, quit, worldLocker)                              // produces ticks on the newGeneration channel, waits for a quit command to end. closes newGeneration when done
 	redrawConsumer(title, gameBoard, footer, world, originMoved, newGeneration, worldLocker) // listens to orignMoved and newGeneration, quits when both are done.
