@@ -16,7 +16,7 @@ const (
 	ALIVE = '#'
 )
 
-const GENERATION_AGE = time.Millisecond * 100
+const GENERATION_AGE = time.Millisecond * 50
 
 const (
 	TITLE_HEIGHT  = 5
@@ -34,7 +34,7 @@ func setupTitle(win *gc.Window) {
 	_, x := win.MaxYX()
 	title := "Conways Game of Life"
 	win.MovePrint(2, (x/2 - len(title)/2), title)
-	win.MovePrint(3, (x/2 - len(title)/2), "(press Q to exit; hjkl to move)")
+	win.MovePrint(3, (x/2 - len(title)/2), "(press Q to exit; hjkl to move), 0 to go to origin")
 }
 
 func updateTitle(win *gc.Window) {
@@ -142,6 +142,11 @@ keys:
 			origin.X++
 			originMoved <- origin
 			continue keys
+		case '0':
+			gc.FlushInput()
+			origin.X, origin.Y = 0, 0
+			originMoved <- origin
+			continue keys
 		case 'q':
 			gc.FlushInput()
 			quit <- true
@@ -165,6 +170,7 @@ func redrawConsumer(title, gameBoard, footer *gc.Window, world *game.World, orig
 	}
 
 	origin := game.Point{0, 0}
+	redrawScreen(origin)
 redraw:
 	for {
 		if originMoved == nil || newGeneration == nil {
@@ -278,12 +284,14 @@ func main() {
 
 	// setup world.
 	startBoard := game.NewBoard()
-	game.Glider(startBoard, 0, 0)
-	game.Glider(startBoard, 5, 0)
-	game.Glider(startBoard, 10, 0)
-	game.Glider(startBoard, 15, 0)
+	// game.Glider(startBoard, 0, 0)
+	// game.Glider(startBoard, 5, 0)
+	// game.Glider(startBoard, 10, 0)
+	// game.Glider(startBoard, 15, 0)
 
-	game.LWSS(startBoard, 0, 5)
+	// game.LWSS(startBoard, 0, 5)
+
+	game.GliderGun(startBoard, 2, 2)
 
 	world := game.NewWorld(*startBoard)
 
