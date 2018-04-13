@@ -1,6 +1,7 @@
 DamnedLife
 ==========
 [![Go Report Card](https://goreportcard.com/badge/github.com/yarbelk/damnedlife)](https://goreportcard.com/report/github.com/yarbelk/damnedlife)
+
 An implementation of Conways game of life, in curses.
 
 
