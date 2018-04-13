@@ -5,8 +5,11 @@ import (
 	"sort"
 )
 
+// Cell is an alive or dead type
 type Cell bool
 
+// Rune return a Human readable rune for the cell
+// like String, but for runes.
 func (c Cell) Rune() rune {
 	if c {
 		return '█'
@@ -14,10 +17,12 @@ func (c Cell) Rune() rune {
 	return '░'
 }
 
+// Board holds a particular itteration/state of the world
 type Board struct {
 	world map[Point]bool
 }
 
+// Point is a bog-standard cartesional point
 type Point struct {
 	X, Y int
 }
@@ -36,6 +41,7 @@ func (p points) Less(i, j int) bool {
 	return (p[i].Y < p[j].Y) || (p[i].Y == p[j].Y) && (p[i].X < p[j].X)
 }
 
+// NewBoard creates an empty board
 func NewBoard() *Board {
 	return &Board{make(map[Point]bool)}
 }
@@ -93,7 +99,7 @@ func (b *Board) GetLimits() (Point, Point) {
 
 // GetOpenCells return all cells currently alives, and their neighbors
 func (b *Board) GetOpenCells() map[Point]bool {
-	var allCells map[Point]bool = make(map[Point]bool)
+	var allCells = make(map[Point]bool)
 	for _, cell := range b.AllAlive() {
 		allCells[cell] = true
 		for _, neighbor := range neighbors(cell.X, cell.Y) {
@@ -135,7 +141,7 @@ func sanePrintLimits(tl, br Point) (Point, Point) {
 }
 
 func (b *Board) String() string {
-	var buffer bytes.Buffer = bytes.Buffer{}
+	var buffer = bytes.Buffer{}
 
 	tl, br := sanePrintLimits(b.GetLimits())
 	for x := tl.X; x <= br.X; x++ {

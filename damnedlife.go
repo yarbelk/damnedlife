@@ -15,14 +15,22 @@ import (
 )
 
 const (
+	// ALIVE is the symbole for alive
 	ALIVE = '#'
 )
 
-const GENERATION_AGE = time.Millisecond * 50
+// GenerationAge is how long a generation lasts in terms
+// of clock wall time.  It is optimistic, and as the complexity increases,
+// it will be longer
+const GenerationAge = time.Millisecond * 50
 
 const (
-	TITLE_HEIGHT  = 5
-	FOOTER_HEIGHT = 3
+	// TitleHeight sets the ncurses title height.  This shows
+	// some information
+	TitleHeight = 5
+	// FooterHeight sets the ncurses footer height. this
+	// shows some information
+	FooterHeight = 3
 )
 
 // ncurses version; thus the 'damned' part of the life
@@ -102,7 +110,7 @@ func setupFooter(win *gc.Window) {
 func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan bool, worldLocker *sync.RWMutex) {
 	for {
 		select {
-		case <-time.After(GENERATION_AGE):
+		case <-time.After(GenerationAge):
 			worldLocker.Lock()
 			world.Next()
 			worldLocker.Unlock()
@@ -117,7 +125,7 @@ func generationTimer(world *game.World, newGeneration chan<- bool, quit <-chan b
 }
 
 func keyPresses(field *gc.Window, originMoved chan<- game.Point, quit chan bool) {
-	origin := game.Point{0, 0}
+	origin := game.Point{X: 0, Y: 0}
 keys:
 	for {
 		// get a char, flush input when you do get one to prevent being blocked
@@ -171,7 +179,7 @@ func redrawConsumer(title, gameBoard, footer *gc.Window, world *game.World, orig
 		gc.Update()
 	}
 
-	origin := game.Point{0, 0}
+	origin := game.Point{X: 0, Y: 0}
 	redrawScreen(origin)
 redraw:
 	for {
@@ -259,25 +267,25 @@ func main() {
 	stdscrn.Keypad(true)
 	rows, cols := stdscrn.MaxYX()
 
-	title, err = gc.NewWindow(TITLE_HEIGHT, cols, 0, 0)
+	title, err = gc.NewWindow(TitleHeight, cols, 0, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer title.Delete()
 
 	field, err = gc.NewWindow(
-		rows-(TITLE_HEIGHT+FOOTER_HEIGHT),
+		rows-(TitleHeight+FooterHeight),
 		cols,
-		TITLE_HEIGHT, 0)
+		TitleHeight, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer field.Delete()
 
 	footer, err = gc.NewWindow(
-		FOOTER_HEIGHT,
+		FooterHeight,
 		cols,
-		rows-FOOTER_HEIGHT,
+		rows-FooterHeight,
 		0)
 	if err != nil {
 		log.Fatal(err)
@@ -310,10 +318,10 @@ func main() {
 
 	world := game.NewWorld(*startBoard)
 
-	var originMoved chan game.Point = make(chan game.Point)
-	var newGeneration chan bool = make(chan bool)
-	var quit chan bool = make(chan bool)
-	var worldLocker *sync.RWMutex = &sync.RWMutex{}
+	var originMoved = make(chan game.Point)
+	var newGeneration = make(chan bool)
+	var quit = make(chan bool)
+	var worldLocker = &sync.RWMutex{}
 
 	go catchSigInt(quit)
 	go keyPresses(field, originMoved, quit)                                                  // producter of origini change commands, and quit.  closes originMoved when done

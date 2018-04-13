@@ -2,6 +2,8 @@ package game
 
 import "fmt"
 
+// World holds the board states and generation information
+// It is the real game.
 type World struct {
 	last, current *Board
 	gen           int
@@ -21,7 +23,7 @@ func (w *World) Next() {
 	//	tl, br := w.current.GetLimits()
 	w.last, w.current = w.current, NewBoard()
 
-	for point, _ := range w.last.GetOpenCells() {
+	for point := range w.last.GetOpenCells() {
 		if w.last.NextState(point.X, point.Y) {
 			w.current.SetAlive(point.X, point.Y)
 		}
