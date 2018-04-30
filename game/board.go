@@ -17,7 +17,7 @@ func (c Cell) Rune() rune {
 	return '░'
 }
 
-// Board holds a particular itteration/state of the world
+// Board holds a particular iteration/state of the world
 type Board struct {
 	world map[Point]bool
 }
@@ -46,6 +46,8 @@ func NewBoard() *Board {
 	return &Board{make(map[Point]bool)}
 }
 
+// neighbors is a helper that will get you your cartesional neighbors.  You could
+// do some magic here if you wanted a hyperbollic space
 func neighbors(x, y int) (neighbors []Point) {
 	neighbors = []Point{
 		Point{x - 1, y - 1}, Point{x - 1, y + 0}, Point{x - 1, y + 1},
@@ -55,18 +57,18 @@ func neighbors(x, y int) (neighbors []Point) {
 	return
 }
 
-// SetAlive makes a given x/y coord to be alive
+// SetAlive makes a given x/y coord to be alive.  Not thread safe
 func (b *Board) SetAlive(x, y int) {
 	b.world[Point{x, y}] = true
 }
 
 // Get the state of a point
-func (b *Board) Get(x, y int) bool {
+func (b Board) Get(x, y int) bool {
 	return b.world[Point{x, y}]
 }
 
 // NextState of the cell at x, y
-func (b *Board) NextState(x, y int) bool {
+func (b Board) NextState(x, y int) bool {
 	var c int
 	var currentState bool
 
@@ -80,7 +82,7 @@ func (b *Board) NextState(x, y int) bool {
 }
 
 // GetLimits returns the Top Left and Bottom right extents of
-// of the board.  Not the most efficent implementation, but
+// of the board.  Not the most efficient implementation, but
 // the easiest to read
 func (b *Board) GetLimits() (Point, Point) {
 	var xs, ys []int
@@ -97,8 +99,8 @@ func (b *Board) GetLimits() (Point, Point) {
 	return Point{xs[0], ys[0]}, Point{xs[len(xs)-1], ys[len(ys)-1]}
 }
 
-// GetOpenCells return all cells currently alives, and their neighbors
-func (b *Board) GetOpenCells() map[Point]bool {
+// GetOpenCells return all cells currently alive, and their neighbors
+func (b Board) GetOpenCells() map[Point]bool {
 	var allCells = make(map[Point]bool)
 	for _, cell := range b.AllAlive() {
 		allCells[cell] = true
@@ -111,7 +113,7 @@ func (b *Board) GetOpenCells() map[Point]bool {
 }
 
 // AllAlive cells on the board
-func (b *Board) AllAlive() (points []Point) {
+func (b Board) AllAlive() (points []Point) {
 
 	for p := range b.world {
 		if b.world[p] { // should always be true; but check anyway
@@ -140,7 +142,7 @@ func sanePrintLimits(tl, br Point) (Point, Point) {
 	return tl, br
 }
 
-func (b *Board) String() string {
+func (b Board) String() string {
 	var buffer = bytes.Buffer{}
 
 	tl, br := sanePrintLimits(b.GetLimits())
