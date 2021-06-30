@@ -62,9 +62,9 @@ TODO
  - [ ] Good support for unicode... in ncurses...
        (I think I should have ncursesw?)
 
-   [ ] benchmarks
+ - [ ] benchmarks
 
-   [ ] decouple simulation from visualizaiton
+ - [ ] decouple simulation from visualizaiton
 
-   [ ] play/pause/speed controls
+ - [ ] play/pause/speed controls
 
