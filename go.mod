@@ -1,3 +1,8 @@
-module "github.com/yarbelk/damnedlife"
+module github.com/yarbelk/damnedlife
 
-require "github.com/rthornton128/goncurses" v0.0.0-20170729003302-7c3fe1c9361f
+go 1.16
+
+require (
+	github.com/onsi/gomega v1.13.0
+	github.com/rthornton128/goncurses v0.0.0-20210302221415-1355ee05acae
+)

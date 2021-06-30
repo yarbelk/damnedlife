@@ -2,7 +2,23 @@ DamnedLife
 ==========
 [![Go Report Card](https://goreportcard.com/badge/github.com/yarbelk/damnedlife)](https://goreportcard.com/report/github.com/yarbelk/damnedlife)
 
-An implementation of Conways game of life, in curses.
+An implementation of Conways game of life, in curses.  for fun.
+
+
+due to a limitation with `cgo` and ncurses libraries,
+try
+
+```
+export CGO_CFLAGS_ALLOW=".*"
+export CGO_LDFLAGS_ALLOW=".*"
+go get github.com/rthornton128/goncurses
+export CGO_CFLAGS_ALLOW=
+export CGO_LDFLAGS_ALLOW=
+```
+
+before building if you have an error with unknown flags.
+
+see https://github.com/rthornton128/goncurses/issues/55
 
 
 TODO
